@@ -7,97 +7,63 @@ class TasksManager {
         this.initEventListeners();
     }
 
-    initEventListeners() {
-        // Task form submission
-        const taskForm = document.getElementById('taskForm');
-        if (taskForm) {
-            taskForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (this.editingTaskId) {
-                    this.updateTask();
-                } else {
-                    this.createTask();
-                }
-            });
+    // In TasksManager constructor, replace the current initEventListeners with:
+initEventListeners() {
+    document.getElementById('taskForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (this.editingTaskId) {
+            this.updateTask();
+        } else {
+            this.createTask();
         }
+    });
 
-        // Event delegation for task buttons - FIXED
-        const tasksList = document.getElementById('tasksList');
-        if (tasksList) {
-            tasksList.addEventListener('click', (e) => {
-                const target = e.target;
-                
-                // Check if clicked on or inside a button
-                const completeBtn = target.closest('.complete-btn');
-                const editBtn = target.closest('.edit-btn');
-                const deleteBtn = target.closest('.delete-btn');
-                
-                if (completeBtn) {
-                    const taskItem = completeBtn.closest('.task-item');
-                    if (taskItem) {
-                        const taskId = taskItem.getAttribute('data-id');
-                        const completed = taskItem.classList.contains('completed');
-                        if (taskId) {
-                            this.toggleTaskCompletion(taskId, completed);
-                        }
-                    }
-                    return;
-                }
-                
-                if (editBtn) {
-                    const taskItem = editBtn.closest('.task-item');
-                    if (taskItem) {
-                        const taskId = taskItem.getAttribute('data-id');
-                        if (taskId) {
-                            this.editTask(taskId);
-                        }
-                    }
-                    return;
-                }
-                
-                if (deleteBtn) {
-                    const taskItem = deleteBtn.closest('.task-item');
-                    if (taskItem) {
-                        const taskId = taskItem.getAttribute('data-id');
-                        if (taskId) {
-                            this.deleteTask(taskId);
-                        }
-                    }
-                    return;
-                }
-            });
+    // Use event delegation for dynamic buttons
+    document.getElementById('tasksList').addEventListener('click', (e) => {
+        const target = e.target;
+        
+        // Complete/Incomplete button
+        if (target.classList.contains('complete-btn') || target.closest('.complete-btn')) {
+            const taskItem = target.closest('.task-item');
+            const taskId = taskItem?.dataset.taskId;
+            const completed = taskItem?.classList.contains('completed');
+            if (taskId) this.toggleTaskCompletion(taskId, completed);
         }
+        
+        // Edit button
+        if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+            const taskItem = target.closest('.task-item');
+            const taskId = taskItem?.dataset.taskId;
+            if (taskId) this.editTask(taskId);
+        }
+        
+        // Delete button
+        if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
+            const taskItem = target.closest('.task-item');
+            const taskId = taskItem?.dataset.taskId;
+            if (taskId) this.deleteTask(taskId);
+        }
+    });
 
-        // Filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.setFilter(e.target.dataset.filter);
-            });
+    // Rest of your existing event listeners...
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            this.setFilter(e.target.dataset.filter);
         });
+    });
 
-        // Priority filter
-        const priorityFilter = document.getElementById('priorityFilter');
-        if (priorityFilter) {
-            priorityFilter.addEventListener('change', (e) => {
-                this.setPriorityFilter(e.target.value);
-            });
-        }
+    document.getElementById('priorityFilter').addEventListener('change', (e) => {
+        this.setPriorityFilter(e.target.value);
+    });
 
-        // Edit mode buttons
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
-        if (cancelEditBtn) {
-            cancelEditBtn.addEventListener('click', () => {
-                this.cancelEdit();
-            });
-        }
+    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+        this.cancelEdit();
+    });
 
-        const updateTaskBtn = document.getElementById('updateTaskBtn');
-        if (updateTaskBtn) {
-            updateTaskBtn.addEventListener('click', () => {
-                this.updateTask();
-            });
-        }
-    }
+    document.getElementById('updateTaskBtn').addEventListener('click', () => {
+        this.updateTask();
+    });
+}
 
     async loadTasks() {
         try {
@@ -229,22 +195,35 @@ class TasksManager {
     }
 
     async editTask(taskId) {
-        try {
-            const response = await fetch(`/api/tasks/${taskId}`, {
-                headers: window.authManager.getAuthHeaders()
-            });
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+            headers: window.authManager.getAuthHeaders()
+        });
 
-            if (response.ok) {
-                const task = await response.json();
-                this.populateEditForm(task);
-            } else {
-                throw new Error('Failed to load task');
-            }
-        } catch (error) {
-            this.showNotification('Error loading task: ' + error.message, 'error');
-            console.error('Edit task error:', error);
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
         }
+
+        if (response.ok) {
+            const task = await response.json();
+            this.populateEditForm(task);
+        } else {
+            // Handle specific HTTP errors
+            if (response.status === 404) {
+                throw new Error('Task not found');
+            } else if (response.status === 401) {
+                throw new Error('Please log in again');
+            } else {
+                throw new Error(`Server error: ${response.status}`);
+            }
+        }
+    } catch (error) {
+        this.showNotification('Error loading task: ' + error.message, 'error');
+        console.error('Edit task error:', error);
     }
+}
 
     populateEditForm(task) {
         this.editingTaskId = task._id;
@@ -289,86 +268,74 @@ class TasksManager {
     }
 
     renderTasks() {
-        const tasksList = document.getElementById('tasksList');
-        
-        if (!tasksList) {
-            console.error('tasksList element not found');
-            return;
-        }
-        
-        if (this.tasks.length === 0) {
-            tasksList.innerHTML = `
-                <div class="no-tasks">
-                    <h3>No tasks yet</h3>
-                    <p>Create your first task to get started!</p>
-                </div>
-            `;
-            this.updateAnalytics();
-            return;
-        }
+    const tasksList = document.getElementById('tasksList');
+    
+    if (this.tasks.length === 0) {
+        tasksList.innerHTML = `
+            <div class="no-tasks">
+                <h3>No tasks yet</h3>
+                <p>Create your first task to get started!</p>
+            </div>
+        `;
+        this.updateAnalytics();
+        return;
+    }
 
-        tasksList.innerHTML = this.tasks.map(task => `
-            <div class="task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority" data-id="${task._id}">
-                <div class="task-header">
-                    <div class="task-title">${this.escapeHtml(task.title)}</div>
-                    <span class="task-priority priority-${task.priority}">
-                        ${task.priority === 'high' ? '🚨' : task.priority === 'medium' ? '🔄' : '📌'} ${task.priority}
+    tasksList.innerHTML = this.tasks.map(task => `
+        <div class="task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority" data-task-id="${task._id}">
+            <div class="task-header">
+                <div class="task-title">${this.escapeHtml(task.title)}</div>
+                <span class="task-priority priority-${task.priority}">
+                    ${task.priority === 'high' ? '🚨' : task.priority === 'medium' ? '🔄' : '📌'} ${task.priority}
+                </span>
+            </div>
+            ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
+            <div class="task-meta">
+                <div class="task-dates">
+                    ${task.dueDate ? `
+                        <span class="due-date ${new Date(task.dueDate) < new Date() && !task.completed ? 'overdue' : ''}">
+                            📅 ${new Date(task.dueDate).toLocaleDateString()}
+                        </span>
+                    ` : ''}
+                    <span class="created-date">
+                        Created: ${new Date(task.createdAt || new Date()).toLocaleDateString()}
                     </span>
                 </div>
-                ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
-                <div class="task-meta">
-                    <div class="task-dates">
-                        ${task.dueDate ? `
-                            <span class="due-date ${new Date(task.dueDate) < new Date() && !task.completed ? 'overdue' : ''}">
-                                📅 ${new Date(task.dueDate).toLocaleDateString()}
-                            </span>
-                        ` : ''}
-                        <span class="created-date">
-                            Created: ${new Date(task.createdAt || new Date()).toLocaleDateString()}
-                        </span>
-                    </div>
-                    <div class="task-actions">
-                        <button type="button" class="btn-action complete-btn">
-                            ${task.completed ? '↩️ Mark Incomplete' : '✅ Mark Complete'}
-                        </button>
-                        <button type="button" class="btn-action edit-btn">
-                            ✏️ Edit
-                        </button>
-                        <button type="button" class="btn-action delete-btn">
-                            🗑️ Delete
-                        </button>
-                    </div>
+                <div class="task-actions">
+                    <button class="btn-action complete-btn">
+                        ${task.completed ? '↩️ Mark Incomplete' : '✅ Mark Complete'}
+                    </button>
+                    <button class="btn-action edit-btn">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn-action delete-btn">
+                        🗑️ Delete
+                    </button>
                 </div>
             </div>
-        `).join('');
+        </div>
+    `).join('');
 
-        this.updateAnalytics();
-    }
+    this.updateAnalytics();
+}
 
     updateAnalytics() {
         const total = this.tasks.length;
         const completed = this.tasks.filter(t => t.completed).length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
         
-        const totalTasksStat = document.getElementById('totalTasksStat');
-        const completedTasksStat = document.getElementById('completedTasksStat');
-        const progressStat = document.getElementById('progressStat');
-        const progressText = document.getElementById('progressText');
-        
-        if (totalTasksStat) totalTasksStat.textContent = total;
-        if (completedTasksStat) completedTasksStat.textContent = completed;
-        if (progressStat) progressStat.textContent = Math.round(progress) + '%';
-        if (progressText) progressText.textContent = Math.round(progress) + '%';
+        document.getElementById('totalTasksStat').textContent = total;
+        document.getElementById('completedTasksStat').textContent = completed;
+        document.getElementById('progressStat').textContent = Math.round(progress) + '%';
+        document.getElementById('progressText').textContent = Math.round(progress) + '%';
         
         const circle = document.querySelector('.progress-ring-circle');
-        if (circle) {
-            const radius = 50;
-            const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (progress / 100) * circumference;
-            
-            circle.style.strokeDasharray = `${circumference} ${circumference}`;
-            circle.style.strokeDashoffset = offset;
-        }
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (progress / 100) * circumference;
+        
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+        circle.style.strokeDashoffset = offset;
     }
 
     showNotification(message, type = 'info') {
@@ -379,7 +346,7 @@ class TasksManager {
         notification.className = `notification ${type}`;
         notification.innerHTML = `
             <span>${message}</span>
-            <button type="button" onclick="this.parentElement.remove()">×</button>
+            <button onclick="this.parentElement.remove()">×</button>
         `;
         document.body.appendChild(notification);
         setTimeout(() => {

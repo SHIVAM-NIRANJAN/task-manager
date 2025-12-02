@@ -1,6 +1,5 @@
 class AuthManager {
     constructor() {
-        console.log('AuthManager initializing...');
         this.token = localStorage.getItem('token');
         this.user = JSON.parse(localStorage.getItem('user'));
         this.initEventListeners();
@@ -8,57 +7,29 @@ class AuthManager {
     }
 
     initEventListeners() {
-        console.log('Setting up auth event listeners...');
-        
-        const showRegister = document.getElementById('show-register');
-        const showLogin = document.getElementById('show-login');
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
-        if (showRegister) {
-            showRegister.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showRegisterForm();
-            });
-        } else {
-            console.error('show-register button not found');
-        }
+        document.getElementById('show-register').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showRegisterForm();
+        });
 
-        if (showLogin) {
-            showLogin.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showLoginForm();
-            });
-        } else {
-            console.error('show-login button not found');
-        }
+        document.getElementById('show-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showLoginForm();
+        });
 
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.login();
-            });
-        } else {
-            console.error('loginForm not found');
-        }
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.login();
+        });
 
-        if (registerForm) {
-            registerForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.register();
-            });
-        } else {
-            console.error('registerForm not found');
-        }
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.register();
+        });
 
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                this.logout();
-            });
-        } else {
-            console.error('logoutBtn not found');
-        }
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            this.logout();
+        });
     }
 
     showLoginForm() {
@@ -154,13 +125,11 @@ class AuthManager {
     }
 
     showApp() {
-        console.log('Showing app section...');
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
         document.getElementById('userWelcome').textContent = `Welcome, ${this.user.username}!`;
         
         if (window.tasksManager) {
-            console.log('Loading tasks...');
             window.tasksManager.loadTasks();
         }
     }
@@ -180,7 +149,7 @@ class AuthManager {
         notification.className = `notification ${type}`;
         notification.innerHTML = `
             <span>${message}</span>
-            <button type="button" onclick="this.parentElement.remove()">×</button>
+            <button onclick="this.parentElement.remove()">×</button>
         `;
         document.body.appendChild(notification);
         setTimeout(() => {
