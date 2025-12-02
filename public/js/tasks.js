@@ -8,69 +8,53 @@ class TasksManager {
     }
 
     initEventListeners() {
-        document.getElementById('taskForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (this.editingTaskId) {
-                this.updateTask();
-            } else {
-                this.createTask();
+        // Wait for form to exist
+        setTimeout(() => {
+            const taskForm = document.getElementById('taskForm');
+            if (taskForm) {
+                taskForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (this.editingTaskId) {
+                        this.updateTask();
+                    } else {
+                        this.createTask();
+                    }
+                });
             }
-        });
-
-        // Event delegation for dynamic task buttons
-        document.getElementById('tasksList').addEventListener('click', (e) => {
-            const target = e.target;
-            const taskItem = target.closest('.task-item');
-            
-            if (!taskItem) return;
-            
-            const taskId = taskItem.dataset.taskId;
-            if (!taskId) {
-                console.error('No task ID found for task item');
-                return;
-            }
-            
-            // Complete/Incomplete button
-            if (target.classList.contains('complete-btn') || target.closest('.complete-btn')) {
-                const completed = taskItem.classList.contains('completed');
-                this.toggleTaskCompletion(taskId, completed);
-                return;
-            }
-            
-            // Edit button
-            if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
-                this.editTask(taskId);
-                return;
-            }
-            
-            // Delete button
-            if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
-                this.deleteTask(taskId);
-                return;
-            }
-        });
-
-        // Filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.setFilter(e.target.dataset.filter);
-            });
-        });
-
-        // Priority filter
-        document.getElementById('priorityFilter').addEventListener('change', (e) => {
-            this.setPriorityFilter(e.target.value);
-        });
-
-        // Edit buttons
-        document.getElementById('cancelEditBtn').addEventListener('click', () => {
-            this.cancelEdit();
-        });
-
-        document.getElementById('updateTaskBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.updateTask();
-        });
+    
+            // Filter buttons
+            setTimeout(() => {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setFilter(e.target.dataset.filter);
+                    });
+                });
+    
+                // Priority filter
+                const priorityFilter = document.getElementById('priorityFilter');
+                if (priorityFilter) {
+                    priorityFilter.addEventListener('change', (e) => {
+                        this.setPriorityFilter(e.target.value);
+                    });
+                }
+    
+                // Edit buttons
+                const cancelEditBtn = document.getElementById('cancelEditBtn');
+                if (cancelEditBtn) {
+                    cancelEditBtn.addEventListener('click', () => {
+                        this.cancelEdit();
+                    });
+                }
+    
+                const updateTaskBtn = document.getElementById('updateTaskBtn');
+                if (updateTaskBtn) {
+                    updateTaskBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.updateTask();
+                    });
+                }
+            }, 100);
+        }, 100);
     }
 
     async loadTasks() {

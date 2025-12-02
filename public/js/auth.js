@@ -129,8 +129,19 @@ class AuthManager {
         document.getElementById('app-section').classList.remove('hidden');
         document.getElementById('userWelcome').textContent = `Welcome, ${this.user.username}!`;
         
-        if (window.tasksManager) {
-            window.tasksManager.loadTasks();
+        // Initialize tasks manager AFTER login
+        if (window.initializeTasksManager) {
+            window.initializeTasksManager();
+        } else {
+            // Fallback
+            setTimeout(() => {
+                if (!window.tasksManager) {
+                    window.tasksManager = new TasksManager();
+                }
+                if (window.tasksManager && window.tasksManager.loadTasks) {
+                    window.tasksManager.loadTasks();
+                }
+            }, 500);
         }
     }
 

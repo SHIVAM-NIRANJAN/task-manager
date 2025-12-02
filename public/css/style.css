@@ -2004,4 +2004,44 @@ body {
     /* Utility styles here */
 }
 
+/* ADD THIS TO YOUR STYLE.CSS FILE */
+
+/* Ensure action buttons are clickable */
+.task-actions .btn-action {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Override any conflicting styles */
+.btn-action, .complete-btn, .edit-btn, .delete-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Fix for hover states */
+.task-item .btn-action:hover {
+    transform: translateY(-2px) scale(1.05) !important;
+}
+
+/* Ensure task items don't block clicks */
+.task-item {
+    position: relative;
+    pointer-events: auto !important;
+}
+
+.task-item * {
+    pointer-events: auto !important;
+}
+
+/* Remove any parent blocking */
+.tasks-list, .tasks-container, .tasks-section {
+    pointer-events: auto !important;
+}
+
+/* Debug class to see what's happening */
+.debug-click * {
+    border: 2px solid red !important;
+}
 /* ===== END OF ULTRA ADVANCED CSS ===== */
