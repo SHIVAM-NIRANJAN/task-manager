@@ -7,63 +7,71 @@ class TasksManager {
         this.initEventListeners();
     }
 
-    // In TasksManager constructor, replace the current initEventListeners with:
-initEventListeners() {
-    document.getElementById('taskForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (this.editingTaskId) {
-            this.updateTask();
-        } else {
-            this.createTask();
-        }
-    });
-
-    // Use event delegation for dynamic buttons
-    document.getElementById('tasksList').addEventListener('click', (e) => {
-        const target = e.target;
-        
-        // Complete/Incomplete button
-        if (target.classList.contains('complete-btn') || target.closest('.complete-btn')) {
-            const taskItem = target.closest('.task-item');
-            const taskId = taskItem?.dataset.taskId;
-            const completed = taskItem?.classList.contains('completed');
-            if (taskId) this.toggleTaskCompletion(taskId, completed);
-        }
-        
-        // Edit button
-        if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
-            const taskItem = target.closest('.task-item');
-            const taskId = taskItem?.dataset.taskId;
-            if (taskId) this.editTask(taskId);
-        }
-        
-        // Delete button
-        if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
-            const taskItem = target.closest('.task-item');
-            const taskId = taskItem?.dataset.taskId;
-            if (taskId) this.deleteTask(taskId);
-        }
-    });
-
-    // Rest of your existing event listeners...
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            this.setFilter(e.target.dataset.filter);
+    initEventListeners() {
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (this.editingTaskId) {
+                this.updateTask();
+            } else {
+                this.createTask();
+            }
         });
-    });
 
-    document.getElementById('priorityFilter').addEventListener('change', (e) => {
-        this.setPriorityFilter(e.target.value);
-    });
+        // Event delegation for dynamic task buttons
+        document.getElementById('tasksList').addEventListener('click', (e) => {
+            const target = e.target;
+            const taskItem = target.closest('.task-item');
+            
+            if (!taskItem) return;
+            
+            const taskId = taskItem.dataset.taskId;
+            if (!taskId) {
+                console.error('No task ID found for task item');
+                return;
+            }
+            
+            // Complete/Incomplete button
+            if (target.classList.contains('complete-btn') || target.closest('.complete-btn')) {
+                const completed = taskItem.classList.contains('completed');
+                this.toggleTaskCompletion(taskId, completed);
+                return;
+            }
+            
+            // Edit button
+            if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+                this.editTask(taskId);
+                return;
+            }
+            
+            // Delete button
+            if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
+                this.deleteTask(taskId);
+                return;
+            }
+        });
 
-    document.getElementById('cancelEditBtn').addEventListener('click', () => {
-        this.cancelEdit();
-    });
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.setFilter(e.target.dataset.filter);
+            });
+        });
 
-    document.getElementById('updateTaskBtn').addEventListener('click', () => {
-        this.updateTask();
-    });
-}
+        // Priority filter
+        document.getElementById('priorityFilter').addEventListener('change', (e) => {
+            this.setPriorityFilter(e.target.value);
+        });
+
+        // Edit buttons
+        document.getElementById('cancelEditBtn').addEventListener('click', () => {
+            this.cancelEdit();
+        });
+
+        document.getElementById('updateTaskBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.updateTask();
+        });
+    }
 
     async loadTasks() {
         try {
@@ -81,21 +89,33 @@ initEventListeners() {
             });
 
             if (response.ok) {
-                this.tasks = await response.json();
+                const data = await response.json();
+                console.log('Loaded tasks:', data); // Debug log
+                this.tasks = data;
                 this.renderTasks();
+                this.updateStats();
+            } else if (response.status === 401) {
+                window.authManager.logout();
+                throw new Error('Session expired. Please login again.');
             } else {
-                throw new Error('Failed to load tasks');
+                throw new Error(`Failed to load tasks: ${response.status}`);
             }
         } catch (error) {
+            console.error('Load tasks error:', error);
             this.showNotification('Error loading tasks: ' + error.message, 'error');
         }
     }
 
     async createTask() {
-        const title = document.getElementById('taskTitle').value;
-        const description = document.getElementById('taskDescription').value;
+        const title = document.getElementById('taskTitle').value.trim();
+        const description = document.getElementById('taskDescription').value.trim();
         const priority = document.getElementById('taskPriority').value;
         const dueDate = document.getElementById('taskDueDate').value;
+
+        if (!title) {
+            this.showNotification('Please enter a task title', 'error');
+            return;
+        }
 
         try {
             const response = await fetch('/api/tasks', {
@@ -105,27 +125,37 @@ initEventListeners() {
                     title,
                     description,
                     priority,
-                    dueDate: dueDate || undefined
+                    dueDate: dueDate || null
                 })
             });
 
+            const data = await response.json();
+            
             if (response.ok) {
                 this.showNotification('Task created successfully! 🎉', 'success');
                 document.getElementById('taskForm').reset();
                 this.loadTasks();
             } else {
-                throw new Error('Failed to create task');
+                throw new Error(data.message || 'Failed to create task');
             }
         } catch (error) {
+            console.error('Create task error:', error);
             this.showNotification('Error creating task: ' + error.message, 'error');
         }
     }
 
     async updateTask() {
-        const title = document.getElementById('taskTitle').value;
-        const description = document.getElementById('taskDescription').value;
+        if (!this.editingTaskId) return;
+
+        const title = document.getElementById('taskTitle').value.trim();
+        const description = document.getElementById('taskDescription').value.trim();
         const priority = document.getElementById('taskPriority').value;
         const dueDate = document.getElementById('taskDueDate').value;
+
+        if (!title) {
+            this.showNotification('Please enter a task title', 'error');
+            return;
+        }
 
         try {
             const response = await fetch(`/api/tasks/${this.editingTaskId}`, {
@@ -135,18 +165,21 @@ initEventListeners() {
                     title,
                     description,
                     priority,
-                    dueDate: dueDate || undefined
+                    dueDate: dueDate || null
                 })
             });
 
+            const data = await response.json();
+            
             if (response.ok) {
                 this.showNotification('Task updated successfully! 🎉', 'success');
                 this.cancelEdit();
                 this.loadTasks();
             } else {
-                throw new Error('Failed to update task');
+                throw new Error(data.message || 'Failed to update task');
             }
         } catch (error) {
+            console.error('Update task error:', error);
             this.showNotification('Error updating task: ' + error.message, 'error');
         }
     }
@@ -166,10 +199,14 @@ initEventListeners() {
             if (response.ok) {
                 this.showNotification(`Task "${taskTitle}" deleted successfully!`, 'success');
                 this.loadTasks();
+            } else if (response.status === 404) {
+                throw new Error('Task not found');
             } else {
-                throw new Error('Failed to delete task');
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to delete task');
             }
         } catch (error) {
+            console.error('Delete task error:', error);
             this.showNotification('Error deleting task: ' + error.message, 'error');
         }
     }
@@ -177,53 +214,53 @@ initEventListeners() {
     async toggleTaskCompletion(taskId, currentlyCompleted) {
         try {
             const response = await fetch(`/api/tasks/${taskId}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: window.authManager.getAuthHeaders(),
-                body: JSON.stringify({ completed: !currentlyCompleted })
+                body: JSON.stringify({ 
+                    completed: !currentlyCompleted,
+                    completedAt: !currentlyCompleted ? new Date().toISOString() : null
+                })
             });
 
+            const data = await response.json();
+            
             if (response.ok) {
                 const action = !currentlyCompleted ? 'completed' : 'marked incomplete';
                 this.showNotification(`Task ${action} successfully! 🎉`, 'success');
                 this.loadTasks();
             } else {
-                throw new Error('Failed to update task');
+                throw new Error(data.message || 'Failed to update task');
             }
         } catch (error) {
+            console.error('Toggle completion error:', error);
             this.showNotification('Error: ' + error.message, 'error');
         }
     }
 
     async editTask(taskId) {
-    try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-            headers: window.authManager.getAuthHeaders()
-        });
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                headers: window.authManager.getAuthHeaders()
+            });
 
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Server returned non-JSON response');
-        }
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Task not found');
+                } else if (response.status === 401) {
+                    window.authManager.logout();
+                    throw new Error('Please log in again');
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+            }
 
-        if (response.ok) {
             const task = await response.json();
             this.populateEditForm(task);
-        } else {
-            // Handle specific HTTP errors
-            if (response.status === 404) {
-                throw new Error('Task not found');
-            } else if (response.status === 401) {
-                throw new Error('Please log in again');
-            } else {
-                throw new Error(`Server error: ${response.status}`);
-            }
+        } catch (error) {
+            console.error('Edit task error:', error);
+            this.showNotification('Error loading task: ' + error.message, 'error');
         }
-    } catch (error) {
-        this.showNotification('Error loading task: ' + error.message, 'error');
-        console.error('Edit task error:', error);
     }
-}
 
     populateEditForm(task) {
         this.editingTaskId = task._id;
@@ -238,7 +275,7 @@ initEventListeners() {
         
         document.getElementById('taskTitle').focus();
         
-        this.showNotification('Editing task: ' + task.title, 'info');
+        this.showNotification(`Editing task: ${task.title}`, 'info');
     }
 
     cancelEdit() {
@@ -267,75 +304,92 @@ initEventListeners() {
         this.loadTasks();
     }
 
-    renderTasks() {
-    const tasksList = document.getElementById('tasksList');
-    
-    if (this.tasks.length === 0) {
-        tasksList.innerHTML = `
-            <div class="no-tasks">
-                <h3>No tasks yet</h3>
-                <p>Create your first task to get started!</p>
-            </div>
-        `;
-        this.updateAnalytics();
-        return;
+    updateStats() {
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        
+        document.getElementById('totalTasks').textContent = `Total: ${total}`;
+        document.getElementById('completedTasks').textContent = `Completed: ${completed}`;
     }
 
-    tasksList.innerHTML = this.tasks.map(task => `
-        <div class="task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority" data-task-id="${task._id}">
-            <div class="task-header">
-                <div class="task-title">${this.escapeHtml(task.title)}</div>
-                <span class="task-priority priority-${task.priority}">
-                    ${task.priority === 'high' ? '🚨' : task.priority === 'medium' ? '🔄' : '📌'} ${task.priority}
-                </span>
-            </div>
-            ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
-            <div class="task-meta">
-                <div class="task-dates">
-                    ${task.dueDate ? `
-                        <span class="due-date ${new Date(task.dueDate) < new Date() && !task.completed ? 'overdue' : ''}">
-                            📅 ${new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                    ` : ''}
-                    <span class="created-date">
-                        Created: ${new Date(task.createdAt || new Date()).toLocaleDateString()}
-                    </span>
+    renderTasks() {
+        const tasksList = document.getElementById('tasksList');
+        
+        if (this.tasks.length === 0) {
+            tasksList.innerHTML = `
+                <div class="no-tasks">
+                    <h3>No tasks yet</h3>
+                    <p>Create your first task to get started!</p>
                 </div>
-                <div class="task-actions">
-                    <button class="btn-action complete-btn">
-                        ${task.completed ? '↩️ Mark Incomplete' : '✅ Mark Complete'}
-                    </button>
-                    <button class="btn-action edit-btn">
-                        ✏️ Edit
-                    </button>
-                    <button class="btn-action delete-btn">
-                        🗑️ Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
+            `;
+            this.updateAnalytics();
+            return;
+        }
 
-    this.updateAnalytics();
-}
+        tasksList.innerHTML = this.tasks.map(task => {
+            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+            const isOverdue = dueDate && dueDate < new Date() && !task.completed;
+            
+            return `
+                <div class="task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority" 
+                     data-task-id="${task._id}">
+                    <div class="task-header">
+                        <div class="task-title">${this.escapeHtml(task.title)}</div>
+                        <span class="task-priority priority-${task.priority}">
+                            ${task.priority === 'high' ? '🚨' : task.priority === 'medium' ? '🔄' : '📌'} ${task.priority}
+                        </span>
+                    </div>
+                    ${task.description ? `<div class="task-description">${this.escapeHtml(task.description)}</div>` : ''}
+                    <div class="task-meta">
+                        <div class="task-dates">
+                            ${dueDate ? `
+                                <span class="due-date ${isOverdue ? 'overdue' : ''}">
+                                    📅 ${dueDate.toLocaleDateString()}
+                                    ${isOverdue ? ' (Overdue)' : ''}
+                                </span>
+                            ` : ''}
+                            <span class="created-date">
+                                Created: ${new Date(task.createdAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn-action complete-btn">
+                                ${task.completed ? '↩️ Mark Incomplete' : '✅ Mark Complete'}
+                            </button>
+                            <button class="btn-action edit-btn">
+                                ✏️ Edit
+                            </button>
+                            <button class="btn-action delete-btn">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.updateAnalytics();
+    }
 
     updateAnalytics() {
         const total = this.tasks.length;
         const completed = this.tasks.filter(t => t.completed).length;
-        const progress = total > 0 ? (completed / total) * 100 : 0;
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
         
         document.getElementById('totalTasksStat').textContent = total;
         document.getElementById('completedTasksStat').textContent = completed;
-        document.getElementById('progressStat').textContent = Math.round(progress) + '%';
-        document.getElementById('progressText').textContent = Math.round(progress) + '%';
+        document.getElementById('progressStat').textContent = `${progress}%`;
+        document.getElementById('progressText').textContent = `${progress}%`;
         
         const circle = document.querySelector('.progress-ring-circle');
-        const radius = 50;
-        const circumference = 2 * Math.PI * radius;
-        const offset = circumference - (progress / 100) * circumference;
-        
-        circle.style.strokeDasharray = `${circumference} ${circumference}`;
-        circle.style.strokeDashoffset = offset;
+        if (circle) {
+            const radius = 50;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (progress / 100) * circumference;
+            
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = offset;
+        }
     }
 
     showNotification(message, type = 'info') {
@@ -348,17 +402,62 @@ initEventListeners() {
             <span>${message}</span>
             <button onclick="this.parentElement.remove()">×</button>
         `;
+        
+        // Add styles if not already present
+        if (!document.querySelector('#notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'notification-styles';
+            style.textContent = `
+                .notification {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 500;
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    min-width: 300px;
+                    max-width: 400px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    animation: slideIn 0.3s ease;
+                }
+                .notification.success { background: #10b981; }
+                .notification.error { background: #ef4444; }
+                .notification.info { background: #3b82f6; }
+                .notification button {
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 20px;
+                    cursor: pointer;
+                    margin-left: 15px;
+                    padding: 0 5px;
+                }
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         document.body.appendChild(notification);
+        
         setTimeout(() => {
             if (notification.parentElement) {
-                notification.remove();
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
             }
         }, 4000);
     }
 
     escapeHtml(unsafe) {
-        return unsafe
-            .toString()
+        if (!unsafe) return '';
+        return unsafe.toString()
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
@@ -366,3 +465,8 @@ initEventListeners() {
             .replace(/'/g, "&#039;");
     }
 }
+
+// Initialize tasks manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.tasksManager = new TasksManager();
+});
