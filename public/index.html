@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <button id="themeToggle" class="theme-toggle">🌙</button>
+    <div id="app">
+        <!-- Auth Section -->
+        <div id="auth-section" class="section">
+            <div class="auth-container">
+                <h1>✅ TaskFlow Pro</h1>
+                <div class="auth-forms">
+                    <div id="login-form" class="auth-form active">
+                        <h2>Welcome Back</h2>
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <div class="form-icon">📧</div>
+                                <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-icon">🔒</div>
+                                <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                            </div>
+                            <button type="submit">Sign In</button>
+                        </form>
+                        <p>Don't have an account? <a href="#" id="show-register">Create Account</a></p>
+                    </div>
+                    
+                    <div id="register-form" class="auth-form">
+                        <h2>Get Started</h2>
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <div class="form-icon">👤</div>
+                                <input type="text" id="registerUsername" placeholder="Choose username" required>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-icon">📧</div>
+                                <input type="email" id="registerEmail" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <div class="form-icon">🔒</div>
+                                <input type="password" id="registerPassword" placeholder="Create password" required>
+                            </div>
+                            <button type="submit">Create Account</button>
+                        </form>
+                        <p>Already have an account? <a href="#" id="show-login">Sign In</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Section -->
+        <div id="app-section" class="section hidden">
+            <header class="header">
+                <h1>✅ TaskFlow Pro</h1>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome, User!</span>
+                    <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <!-- Task Form Sidebar -->
+                <div class="task-form-container">
+                    <h2>➕ Create New Task</h2>
+                    <form id="taskForm">
+                        <div class="form-input">
+                            <input type="text" id="taskTitle" placeholder="Task title" required>
+                        </div>
+                        <div class="form-input">
+                            <textarea id="taskDescription" placeholder="Task description..."></textarea>
+                        </div>
+                        <div class="form-input">
+                            <select id="taskPriority">
+                                <option value="low">📌 Low Priority</option>
+                                <option value="medium" selected>🔄 Medium Priority</option>
+                                <option value="high">🚨 High Priority</option>
+                            </select>
+                        </div>
+                        <div class="form-input">
+                            <input type="date" id="taskDueDate">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" id="addTaskBtn" class="btn btn-primary">Add Task</button>
+                            <button type="button" id="updateTaskBtn" class="btn btn-primary hidden">Update Task</button>
+                            <button type="button" id="cancelEditBtn" class="btn btn-secondary hidden">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tasks Main Area -->
+                <div class="tasks-section">
+                    <div class="section-header">
+                        <h2>📝 My Tasks</h2>
+                        <div class="stats">
+                            <span id="totalTasks">Total: 0</span>
+                            <span id="completedTasks">Completed: 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filters">
+                        <div class="filter-group">
+                            <button class="filter-btn active" data-filter="all">All Tasks</button>
+                            <button class="filter-btn" data-filter="pending">Pending</button>
+                            <button class="filter-btn" data-filter="completed">Completed</button>
+                        </div>
+                        <div class="priority-filter">
+                            <select id="priorityFilter">
+                                <option value="">All Priorities</option>
+                                <option value="high">🚨 High Priority</option>
+                                <option value="medium">🔄 Medium Priority</option>
+                                <option value="low">📌 Low Priority</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Add this after the filters div -->
+<div class="analytics-dashboard">
+    <h3>📊 Progress Overview</h3>
+    <div class="stats-cards">
+        <div class="stat-card">
+            <span class="stat-number" id="totalTasksStat">0</span>
+            <span class="stat-label">Total Tasks</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number" id="completedTasksStat">0</span>
+            <span class="stat-label">Completed</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number" id="progressStat">0%</span>
+            <span class="stat-label">Progress</span>
+        </div>
+    </div>
+    <div class="progress-ring-container">
+        <div class="progress-ring">
+            <svg width="120" height="120">
+                <circle class="progress-ring-background" cx="60" cy="60" r="50"/>
+                <circle class="progress-ring-circle" cx="60" cy="60" r="50"/>
+            </svg>
+            <span class="progress-text" id="progressText">0%</span>
+        </div>
+    </div>
+</div>
+
+                    <!-- Tasks List -->
+                    <div class="tasks-container">
+                        <div id="tasksList" class="tasks-list">
+                            <div class="no-tasks">
+                                <h3>No tasks yet</h3>
+                                <p>Create your first task to get started!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
