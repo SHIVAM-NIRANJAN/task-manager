@@ -8,7 +8,12 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["task", "manager", "express", "mongodb"],
+  "keywords": [
+    "task",
+    "manager",
+    "express",
+    "mongodb"
+  ],
   "author": "shivam Niranjan",
   "license": "ISC",
   "dependencies": {
